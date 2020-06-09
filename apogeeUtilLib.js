@@ -21,16 +21,13 @@ apogeeutil.STATE_ERROR = "error";
 /** Invalid State - used by members */
 apogeeutil.STATE_INVALID = "invalid";
 
-/** Standard dependency */
+/** Standard dependency 
+ * @private */
 apogeeutil.NORMAL_DEPENDENCY = 1
 
-/** Pass through dependency */
+/** Pass through dependency 
+ * @private */
 apogeeutil.PASS_THROUGH_DEPENDENCY = 2;
-
-/** This method creates a unique key for a field object target.  */
-apogeeutil.createUniqueKey = function(targetType,targetId) {
-    return targetType + targetId;
-}
 
 /** 
  * This value can be assigned to a data table to signify that data is not valid.
@@ -63,7 +60,8 @@ apogeeutil.invalidFunctionReturn = function() {
 /** This function reads any proeprty of the mixinObject and adds it
  * fo the prototypr of the destObject. This is intended to apend functions and
  * other properties to a cless directly without going through inheritance. 
- * Note this will overwrite and similarly named object in the dest class.*/
+ * Note this will overwrite and similarly named object in the dest class.
+ * @private */
 apogeeutil.mixin = function(destObject,mixinObject) {
     for(var key in mixinObject) {
         destObject.prototype[key] = mixinObject[key];
@@ -280,16 +278,6 @@ apogeeutil.getNormalizedArrayCopy = function(json) {
         copiedJson.push(apogeeutil.getNormalizedCopy(element));
     }
     return copiedJson;
-}
-
-//=============================
-// Field Update Info Methods
-//=============================
-    
-// }
-//This is a version 
-apogeeutil.isFieldUpdated = function(updateInfo,fieldName) {
-    return updateInfo[fieldName] ? true : false;
 }
 
 //=================
