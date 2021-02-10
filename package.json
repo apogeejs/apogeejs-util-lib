@@ -1,0 +1,16 @@
+{
+    "name": "apogeejs-util-lib",
+    "version": "2.0.0-p1",
+    "description": "This library contains some shared basic code between differnt apogeejs repos.",
+    "homepage": "https://www.apogeejs.com",
+    "license": "MIT",
+    "author": "Dave Sutter",
+    "main": "apogeejs-util-lib.js",
+    "module": "apogeeUtilLib.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sutter-dave/apogeejs-util-lib.git"
+    },
+    "dependencies": {
+    }
+}
