@@ -1,5 +1,14 @@
 {
-    "filesToCopy": [
-        "/apogeejs-util-lib/package.json"
-    ]
+    "repoName": "apogeejs-util-lib",
+    "isProductionRelease": false,
+    
+    "makeEsModule": true,
+    "esModuleFileName": "apogeeUtilLib.js",
+    "esFilesToCopyUrls": [
+        "/apogeejs-util-lib/versionInfo.json"
+    ],
+    "esExternalLibs": [],
+    "esExternalLibRemapping": {},
+
+    "makeNpmModule": false
 }
