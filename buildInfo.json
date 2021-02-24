@@ -1,13 +1,20 @@
 {
     "repoName": "apogeejs-util-lib",
-    
-    "makeEsModule": true,
-    "esModuleFileName": "apogeeUtilLib.js",
-    "esFilesToCopyUrls": [
-        "/apogeejs-util-lib/versionInfo.json"
-    ],
-    "esExternalLibs": [],
-    "esExternalLibRemapping": {},
 
-    "makeNpmModule": false
+    "esModule": {
+        "format": "es",
+        "taskList": [
+            {
+                "type": "copyFileList",
+                "srcFileUrlList": [
+                    "/apogeejs-util-lib/versionInfo.json"
+                ]
+            },
+            {
+                "type": "packageLib",
+                "esModuleFileName": "apogeeUtilLib.js",
+                "externalLibs": []
+            }
+        ]
+    }
 }
