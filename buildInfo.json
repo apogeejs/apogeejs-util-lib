@@ -2,7 +2,6 @@
     "repoName": "apogeejs-util-lib",
 
     "esModule": {
-        "format": "es",
         "taskList": [
             {
                 "type": "copyFileList",
@@ -14,6 +13,25 @@
                 "type": "packageLib",
                 "esModuleFileName": "apogeeUtilLib.js",
                 "externalLibs": []
+            }
+        ]
+    },
+    "npmModule": {
+        "taskList": [
+            {
+                "type": "copyAndReplace",
+                "srcFileUrl": "/apogeejs-util-lib/package.json",
+                "replacementList": [
+                    {
+                        "marker": "[RELEASE_VERSION]",
+                        "name": "RELEASE_VERSION"
+                    }
+                ]
+            },
+            {
+                "type": "packageLib",
+                "esModuleFileName": "apogeeUtilLib.js",
+                "npmModuleFileName": "apogeejs-util-lib.js"
             }
         ]
     }

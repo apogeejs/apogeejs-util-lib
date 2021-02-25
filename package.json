@@ -1,0 +1,14 @@
+{
+    "DEV_RELEASE": true,
+    "name": "apogeejs-util-lib",
+    "version": "[RELEASE_VERSION]",
+    "description": "This library forms the model layer of the apogee app.",
+    "homepage": "https://www.apogeejs.com",
+    "license": "MIT",
+    "author": "Dave Sutter",
+    "main": "./src/apogeejs-util-lib.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sutter-dave/apogeejs-util-lib.git"
+    }
+}
