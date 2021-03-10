@@ -300,6 +300,19 @@ apogeeutil.parseStringArray = function(argListString) {
 }
 
 //=================
+// Error utility methods
+//=================
+
+/** This method adds the extended info to the error. It allows for multiple
+ * error infos to be added. */
+apogeeutil.appendErrorInfo = function(error,errorInfo) {
+    if(!error.errorInfoList) {
+        error.errorInfoList = [];
+    }
+    error.errorInfoList.push(errorInfo);
+}
+
+//=================
 // Network request utils
 //=================
 
