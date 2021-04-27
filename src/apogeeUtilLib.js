@@ -326,6 +326,8 @@ apogeeutil.appendErrorInfo = function(error,errorInfo) {
  * @param {function} onSuccess - This is a callback that will be called if the request succeeds. It should take a String request body argument.
  * @param {function} onError - This is the callback that will be called it the request fails. It should take a String error message argument. 
  * @param {Object} options - These are options for the request.
+ * 
+ * @deprecated
  */
 apogeeutil.callbackRequest = function(url,onSuccess,onError,options) {
     
@@ -368,6 +370,71 @@ apogeeutil.callbackRequest = function(url,onSuccess,onError,options) {
     xmlhttp.send(options.body);
 }
 
+/** This is an http request. The options argument matches the options in fetch, for example:
+ * - "method" - HTTP method, default value is "GET"
+ * - "body" - HTTP body for the request
+ * - "header" - HTTP headers, example: {"Content-Type":"text/plain","other-header":"xxx"}
+ * The output body type can optionally be set to:
+ * - "text" - The output is given as text
+ * - "json" - The output is given as JSON
+ * - "none" - The body is not returned.
+ * - "mime" - The output format matches the mime type (currently supporting JSON and text)
+ * - (unspecified) - The output format "mimi" is used. */
+apogeeutil.httpRequest = function(url,options,bodyFormat) {
+	return fetch(url,options).then(response => {
+		//save the body
+		let responseBodyPromise;
+		let selectedBodyFormat;
+        switch(bodyFormat) {
+            case "text":
+		    case "json":
+            case "none":
+                selectedBodyFormat = bodyFormat;
+                break;
+
+            case "mime": 
+            default: 
+            {
+                let contentType = response.headers.get("content-type");
+                if((contentType)&&(contentType.startsWith("application/json"))) selectedBodyFormat = "json";
+                else selectedBodyFormat = "text";
+                break;
+            }
+        }
+		
+		switch(selectedBodyFormat) {
+			case "text":
+				responseBodyPromise = response.text();
+				break;
+				
+			case "json": 
+				responseBodyPromise = response.json();
+				break;
+				
+			case "none":
+				responseBodyPromise = Promise.resolve("");
+				break;
+		}
+		
+		return responseBodyPromise.then(body => {
+			if(response.ok) {
+				return body;
+			}
+			else {
+				let msg = "Error in request. Status code: " + response.status;
+				if(response.statusText) msg += "; " + response.statusText
+				let error = new Error(msg);
+				error.valueData = {
+					value: body,
+					nominalType: "application/json",
+					stringified: false
+				}
+				return Promise.reject(error)
+			}
+		})
+	})
+}
+
 /** 
  * This method returns a promise object for an HTTP request. The promist object
  * returns the text body of the URL if it resolves successfully.
@@ -377,9 +444,7 @@ apogeeutil.callbackRequest = function(url,onSuccess,onError,options) {
  * @return {Promise} This method returns a promise object with the URL body as text.
  */
 apogeeutil.textRequest = function(url,options) {
-    return new Promise(function(onSuccess,onError) {
-        apogeeutil.callbackRequest(url,onSuccess,onError,options);
-    });
+    return apogeeutil.httpRequest(url,options,"text");
 }
 
 /** 
@@ -391,7 +456,7 @@ apogeeutil.textRequest = function(url,options) {
  * @return {Promise} This method returns a promise object with the URL body as text.
  */
 apogeeutil.jsonRequest = function(url,options) {
-    return apogeeutil.textRequest(url,options).then(JSON.parse);
+    return apogeeutil.httpRequest(url,options,"json");
 }
 
 /** This method returns a random string which should be unique. */
