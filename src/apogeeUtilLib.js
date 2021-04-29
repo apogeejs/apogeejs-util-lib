@@ -131,7 +131,31 @@ apogeeutil.getObjectType = function(object) {
 
 /** This returns true if the object is a string. */
 apogeeutil.isString = function(object) {
-    return (typeof object == "string");
+    return ((typeof object == "string")||(object instanceof String));
+}
+
+/** This is a parse function that includes the original data in the error, in the apogee specific format, 
+ * if the input fails to parse. */
+apogeeutil.apogeeJsonParse = function(jsonString) {
+    if(!apogeeutil.isString(jsonString)) throw new Error("argument of JSON.Parse() is not a string");
+    try {
+        return JSON.parse(jsonString);
+    }
+    catch(error) {
+        try {
+            data = JSON.parse(jsonString);
+        }
+        catch(error) {
+            //add apogee format extra error info to give original data
+            let newError = new Error(error.message);
+            newError.valueData = {
+                value: jsonString,
+                nominalType: MIME_TYPE_JSON,
+                stringified: true
+            }
+            throw newError;
+        }
+    }
 }
 
 /** This method creates a deep copy of an object, array or value. Note that
@@ -285,6 +309,13 @@ apogeeutil.getNormalizedArrayCopy = function(json) {
     return copiedJson;
 }
 
+/** This returns true if the mime type is JSON. */
+apogeeutil.isJsonMimeType = function(mimeType) {
+    return (mimeType.startsWith(MIME_TYPE_JSON));
+}
+
+const MIME_TYPE_JSON = "application/json"
+
 //=================
 // Some other generic utils
 //=================
@@ -316,6 +347,160 @@ apogeeutil.appendErrorInfo = function(error,errorInfo) {
 // Network request utils
 //=================
 
+/** This is an http request. The url and options argument matches the options in fetch:
+ * @url - the url to request
+ * @options - the options for the request, as formatted for the function "fetch"
+ * @bodyFormat - specifies how to return the body
+ * -- "mime" - The output format matches the mime type (currently supporting JSON and text). This is used as the default.
+ * -- "text" - The output is forced to text, ignoring mime type
+ * -- "json" - The output is given as JSON, ignoring mime type
+ * -- "none" - The body is not returned.
+ * 
+ * @saveMetaData - If this flag is set to true, the response status and headers are included in the output.
+ * - noFailedRequestError - If this is set to true, an error will nto be thrown if fetch does no report status "OK"
+ *      There are still scenarios where an error will be thrown if this flag is true. If this flag is false or otherwise falsey, 
+ *      then an error will be thrown if fetch reports the reponse.ok = false;
+ * 
+ * If there is a successful request but an error loading the body, this will cause an exception if noFailedRequestError is false, 
+ * In noFailedRequestError is true an empty body will be returned. The value "bodyError" will be populated with a descrition of the error.
+ * 
+ * @return:
+ * {
+ *      "body": (the body, if applicable)
+ *      "meta": (if applicable) {
+ *          "status": (status)
+ *          "headers": (headers)
+ *      }
+ *      "bodyError": (body error description, if noFailedRequestError is set true and there is a body error. In this case, the body is an empty string)
+ * }
+ * 
+ * If an exception is thrown, the Error object will include the field "valueData" which has the data in the format of the return value above if applicable.
+ * for example, if noFailedRequestError = false (or maybe undefined), an exception can be thrown even though there is response data.
+ * -- meta
+ * --- status
+ * --- headers
+ * }
+ */ 
+apogeeutil.httpRequest = function(url,options,bodyFormat,saveMetadata,noFailedRequestError) {
+	return fetch(url,options).then(response => {
+        let returnValue = {};
+        let error = null;
+
+        //check for response with status error
+        if((!response.ok)&&(!noFailedRequestError)) {
+            let msg = "Error in request. Status code: " + response.status;
+            if(response.statusText) msg += "; " + response.statusText
+            error = new Error(msg);
+        }
+
+        //read request meta data, if needed
+        let meta;
+        if(saveMetadata) {
+            meta = {};
+            meta.status = response.status;
+            meta.headers = {};
+            for (let pair of response.headers.entries()) {
+                meta.headers[pair[0]] = pair[1];
+            }
+            returnValue.meta = meta;
+        }
+
+		//save the body
+		let responseBodyPromise;
+		let selectedBodyFormat;
+        switch(bodyFormat) {
+            case "text":
+		    case "json":
+            case "none":
+                selectedBodyFormat = bodyFormat;
+                break;
+
+            case "mime": 
+            default: 
+            {
+                let contentType = response.headers.get("content-type");
+                if((contentType)&&(apogeeutil.isJsonMimeType(contentType))) selectedBodyFormat = "json";
+                else selectedBodyFormat = "text";
+                break;
+            }
+        }
+		
+		switch(selectedBodyFormat) {
+			case "text":
+				responseBodyPromise = response.text();
+				break;
+				
+			case "json": 
+				responseBodyPromise = response.text().then(jsonString => apogeeutil.apogeeJsonParse(jsonString));
+				break;
+				
+			case "none":
+				responseBodyPromise = Promise.resolve("");
+				break;
+		}
+		
+		return responseBodyPromise.then(body => {
+            //save the body to the return value
+            returnValue.body = body;
+		}).catch(bodyLoadError => {
+            //save body load error to the return value and save an empty body
+            let bodyLoadErrorMsg = bodyLoadError.message ? bodyLoadError.message : bodyLoadError.toString();
+            returnValue.bodyError = bodyLoadErrorMsg;
+            returnValue.body = "";
+            //if the user did not flag "no error", make sure there is an error response
+            if((!error)&&(!noFailedRequestError)) {
+                error = new Error(bodyLoadErrorMsg);
+            }
+        }).then( () => {
+            //get final return value
+            if(!error) {
+                return returnValue;
+            }
+            else {
+                //if there is an error, add the additional info and throw error
+				error.valueData = {
+					value: returnValue,
+					nominalType: "application/json"
+				}
+				return Promise.reject(error)
+			}
+        })
+	})
+}
+
+/** 
+ * This method returns a promise object for an HTTP request. The promist object
+ * returns the text body of the URL if it resolves successfully.
+ *  
+ * @param {String} url - This is the url to be requested
+ * @param {Object} options - These are options for the request, matching the options in fetch.
+ * @return {Promise} This method returns a promise object with the URL body as text.
+ */
+apogeeutil.textRequest = function(url,options) {
+    return apogeeutil.httpRequest(url,options,"text");
+}
+
+/** 
+ * This method returns a promise object for an HTTP request. The promist object
+ * returns the JSON body of the URL if it resolves successfully.
+ *  
+ * @param {String} url - This is the url to be requested
+ * @param {Object} options - These are options for the request, matching the options in fetch.
+ * @return {Promise} This method returns a promise object with the URL body as text.
+ */
+apogeeutil.jsonRequest = function(url,options) {
+    return apogeeutil.httpRequest(url,options,"json");
+}
+
+/** This method returns a random string which should be unique. */
+apogeeutil.getUniqueString = function() {
+    return Math.random().toString(36).substring(2, 15);
+}
+
+
+//======================================================================
+// deprecated
+//======================================================================
 
 /** 
  * This method does a standard callback request. It includes the following options:
@@ -329,7 +514,7 @@ apogeeutil.appendErrorInfo = function(error,errorInfo) {
  * 
  * @deprecated
  */
-apogeeutil.callbackRequest = function(url,onSuccess,onError,options) {
+ apogeeutil.callbackRequest = function(url,onSuccess,onError,options) {
     
     var xmlhttp=new XMLHttpRequest();
 
@@ -368,98 +553,4 @@ apogeeutil.callbackRequest = function(url,onSuccess,onError,options) {
     }
     
     xmlhttp.send(options.body);
-}
-
-/** This is an http request. The options argument matches the options in fetch, for example:
- * - "method" - HTTP method, default value is "GET"
- * - "body" - HTTP body for the request
- * - "header" - HTTP headers, example: {"Content-Type":"text/plain","other-header":"xxx"}
- * The output body type can optionally be set to:
- * - "text" - The output is given as text
- * - "json" - The output is given as JSON
- * - "none" - The body is not returned.
- * - "mime" - The output format matches the mime type (currently supporting JSON and text)
- * - (unspecified) - The output format "mimi" is used. */
-apogeeutil.httpRequest = function(url,options,bodyFormat) {
-	return fetch(url,options).then(response => {
-		//save the body
-		let responseBodyPromise;
-		let selectedBodyFormat;
-        switch(bodyFormat) {
-            case "text":
-		    case "json":
-            case "none":
-                selectedBodyFormat = bodyFormat;
-                break;
-
-            case "mime": 
-            default: 
-            {
-                let contentType = response.headers.get("content-type");
-                if((contentType)&&(contentType.startsWith("application/json"))) selectedBodyFormat = "json";
-                else selectedBodyFormat = "text";
-                break;
-            }
-        }
-		
-		switch(selectedBodyFormat) {
-			case "text":
-				responseBodyPromise = response.text();
-				break;
-				
-			case "json": 
-				responseBodyPromise = response.json();
-				break;
-				
-			case "none":
-				responseBodyPromise = Promise.resolve("");
-				break;
-		}
-		
-		return responseBodyPromise.then(body => {
-			if(response.ok) {
-				return body;
-			}
-			else {
-				let msg = "Error in request. Status code: " + response.status;
-				if(response.statusText) msg += "; " + response.statusText
-				let error = new Error(msg);
-				error.valueData = {
-					value: body,
-					nominalType: "application/json",
-					stringified: false
-				}
-				return Promise.reject(error)
-			}
-		})
-	})
-}
-
-/** 
- * This method returns a promise object for an HTTP request. The promist object
- * returns the text body of the URL if it resolves successfully.
- *  
- * @param {String} url - This is the url to be requested
- * @param {Object} options - These are options for the request. See {@link apogeeutil.callbackRequest} for the options definition.
- * @return {Promise} This method returns a promise object with the URL body as text.
- */
-apogeeutil.textRequest = function(url,options) {
-    return apogeeutil.httpRequest(url,options,"text");
-}
-
-/** 
- * This method returns a promise object for an HTTP request. The promist object
- * returns the JSON body of the URL if it resolves successfully.
- *  
- * @param {String} url - This is the url to be requested
- * @param {Object} options - These are options for the request. See {@link apogeeutil.callbackRequest} for the options definition.
- * @return {Promise} This method returns a promise object with the URL body as text.
- */
-apogeeutil.jsonRequest = function(url,options) {
-    return apogeeutil.httpRequest(url,options,"json");
-}
-
-/** This method returns a random string which should be unique. */
-apogeeutil.getUniqueString = function() {
-    return Math.random().toString(36).substring(2, 15);
 }
