@@ -382,6 +382,22 @@ apogeeutil.appendErrorInfo = function(error,errorInfo) {
  * }
  */ 
 apogeeutil.httpRequest = function(url,options,bodyFormat,saveMetadata,noFailedRequestError) {
+
+    /////////////////////////////////////////
+    //legacy addition
+    //Originally, before fetch was used, the headers options was called "header"
+    //This fix will support people using "header" instead of "headers"
+    //It does not support arbitrary use of both together. The field "header" is used only if "headers" is not defined
+    //It copies the options object, to prevent an error for the case the options object is immutable
+    if((options.header)&&(options.headers === undefined)) {
+        let newOptions = {};
+        Object.assign(newOptions,options);
+        newOptions.headers = options.header;
+        options = newOptions;
+    }
+    //end legacy addition
+    //////////////////////////////////////////
+
 	return fetch(url,options).then(response => {
         let returnValue = {};
         let error = null;
@@ -477,7 +493,7 @@ apogeeutil.httpRequest = function(url,options,bodyFormat,saveMetadata,noFailedRe
  * @return {Promise} This method returns a promise object with the URL body as text.
  */
 apogeeutil.textRequest = function(url,options) {
-    return apogeeutil.httpRequest(url,options,"text");
+    return apogeeutil.httpRequest(url,options,"text").then(result => result.body);
 }
 
 /** 
@@ -489,7 +505,7 @@ apogeeutil.textRequest = function(url,options) {
  * @return {Promise} This method returns a promise object with the URL body as text.
  */
 apogeeutil.jsonRequest = function(url,options) {
-    return apogeeutil.httpRequest(url,options,"json");
+    return apogeeutil.httpRequest(url,options,"json").then(result => result.body);
 }
 
 /** This method returns a random string which should be unique. */
