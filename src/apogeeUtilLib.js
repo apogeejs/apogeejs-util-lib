@@ -389,7 +389,7 @@ apogeeutil.httpRequest = function(url,options,bodyFormat,saveMetadata,noFailedRe
     //This fix will support people using "header" instead of "headers"
     //It does not support arbitrary use of both together. The field "header" is used only if "headers" is not defined
     //It copies the options object, to prevent an error for the case the options object is immutable
-    if((options.header)&&(options.headers === undefined)) {
+    if((options)&&(options.header)&&(options.headers === undefined)) {
         let newOptions = {};
         Object.assign(newOptions,options);
         newOptions.headers = options.header;
