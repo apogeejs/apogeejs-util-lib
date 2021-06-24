@@ -1,3 +1,5 @@
+import _ from "/apogeejs-releases/releases/ext/lodash/v4.17.21/lodash.es.js";
+
 /** 
  * This namespace includes some utility functions available to the user.
  * @namespace
@@ -5,6 +7,10 @@
 let apogeeutil = {};
 
 export {apogeeutil as default};
+
+//export lodash in apogee util
+//Internally to the code we will use this version rather than a global definition of _
+apogeeutil._ = _;
 
 /** None State - used by members. This indicates no state information is present. */
 apogeeutil.STATE_NONE = "none";
