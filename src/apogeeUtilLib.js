@@ -228,7 +228,7 @@ apogeeutil.readQueryField = function(field,url) {
 }
 
 /** 
- * This is a not-so-efficient equals for json objects. For JSON objects it
+ * This is a equals for json objects. For JSON objects it
  * does not require order matching of the keys. For JSON arrays it does require
  * order matching of the array values.
  * 
@@ -237,9 +237,7 @@ apogeeutil.readQueryField = function(field,url) {
  *  @returns {Boolean}  - Returns whether or not the objects are equal
  */
 apogeeutil.jsonEquals = function(json1,json2) {
-    var string1 = JSON.stringify(apogeeutil.getNormalizedCopy(json1));
-    var string2 = JSON.stringify(apogeeutil.getNormalizedCopy(json2));
-    return (string1 == string2);
+    return _.isEqual(json1,json2);
 }
 
 /** 
