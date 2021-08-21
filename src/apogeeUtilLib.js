@@ -140,30 +140,6 @@ apogeeutil.isString = function(object) {
     return ((typeof object == "string")||(object instanceof String));
 }
 
-/** This is a parse function that includes the original data in the error, in the apogee specific format, 
- * if the input fails to parse. */
-apogeeutil.apogeeJsonParse = function(jsonString) {
-    if(!apogeeutil.isString(jsonString)) throw new Error("argument of JSON.Parse() is not a string");
-    try {
-        return JSON.parse(jsonString);
-    }
-    catch(error) {
-        try {
-            data = JSON.parse(jsonString);
-        }
-        catch(error) {
-            //add apogee format extra error info to give original data
-            let newError = new Error(error.message);
-            newError.valueData = {
-                value: jsonString,
-                nominalType: MIME_TYPE_JSON,
-                stringified: true
-            }
-            throw newError;
-        }
-    }
-}
-
 /** This method creates a deep copy of an object, array or value. Note that
  * undefined is not a valid value in JSON. 
  * 
@@ -315,10 +291,10 @@ apogeeutil.getNormalizedArrayCopy = function(json) {
 
 /** This returns true if the mime type is JSON. */
 apogeeutil.isJsonMimeType = function(mimeType) {
-    return (mimeType.startsWith(MIME_TYPE_JSON));
+    return (mimeType.startsWith(apogeeutil.MIME_TYPE_JSON));
 }
 
-const MIME_TYPE_JSON = "application/json"
+apogeeutil.MIME_TYPE_JSON = "application/json"
 
 //=================
 // Some other generic utils
@@ -451,7 +427,22 @@ apogeeutil.httpRequest = function(url,options,bodyFormat,saveMetadata,noFailedRe
 				break;
 				
 			case "json": 
-				responseBodyPromise = response.text().then(jsonString => apogeeutil.apogeeJsonParse(jsonString));
+				responseBodyPromise = response.text().then(jsonString => {
+                    try {
+                        return JSON.parse(jsonString);
+                    }
+                    catch(error) {
+                        //append the unparsed data to the error
+                        error.valueData = {
+                            value: {
+                                meta: meta,
+                                body: jsonString
+                            },
+                            nominalType: apogeeutil.MIME_TYPE_JSON
+                        };
+                        throw error;
+                    }
+                });
 				break;
 				
 			case "none":
@@ -463,13 +454,11 @@ apogeeutil.httpRequest = function(url,options,bodyFormat,saveMetadata,noFailedRe
             //save the body to the return value
             returnValue.body = body;
 		}).catch(bodyLoadError => {
-            //save body load error to the return value and save an empty body
-            let bodyLoadErrorMsg = bodyLoadError.message ? bodyLoadError.message : bodyLoadError.toString();
-            returnValue.bodyError = bodyLoadErrorMsg;
-            returnValue.body = "";
-            //if the user did not flag "no error", make sure there is an error response
-            if((!error)&&(!noFailedRequestError)) {
-                error = new Error(bodyLoadErrorMsg);
+            if(!bodyLoadError instanceof Error) {
+                error = new Error(bodyLoadError.toString());
+            }
+            else {
+                error = bodyLoadError;
             }
         }).then( () => {
             //get final return value
@@ -477,11 +466,6 @@ apogeeutil.httpRequest = function(url,options,bodyFormat,saveMetadata,noFailedRe
                 return returnValue;
             }
             else {
-                //if there is an error, add the additional info and throw error
-				error.valueData = {
-					value: returnValue,
-					nominalType: "application/json"
-				}
 				return Promise.reject(error)
 			}
         })
