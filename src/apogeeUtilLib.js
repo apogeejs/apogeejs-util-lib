@@ -27,14 +27,6 @@ apogeeutil.STATE_ERROR = "error";
 /** Invalid State - used by members */
 apogeeutil.STATE_INVALID = "invalid";
 
-/** Standard dependency 
- * @private */
-apogeeutil.NORMAL_DEPENDENCY = 1
-
-/** Pass through dependency 
- * @private */
-apogeeutil.PASS_THROUGH_DEPENDENCY = 2;
-
 /** 
  * This value can be assigned to a data table to signify that data is not valid.
  * Any other member depending on this value will withhold the calcalation and also
