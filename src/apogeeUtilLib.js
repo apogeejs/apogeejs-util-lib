@@ -28,7 +28,7 @@ apogeeutil.STATE_ERROR = "error";
 apogeeutil.STATE_INVALID = "invalid";
 
 /** 
- * This value can be assigned to a data table to signify that data is not valid.
+ * This value can be assigned to a data member to signify that data is not valid.
  * Any other member depending on this value will withhold the calcalation and also
  * return this invalid value.
  */
@@ -47,7 +47,7 @@ apogeeutil.MEMBER_FUNCTION_INVALID_THROWABLE = {"apogeeException":"invalid"};
 apogeeutil.MEMBER_FUNCTION_PENDING_THROWABLE = {"apogeeException":"pending"};
 
 /** 
- * This function should be called from the body of a function table
+ * This function should be called from the body of a function member
  * to indicate the function will not return a valid value. (The actual invalid value
  * can not be returned since this typically will not have the desired effect.)
  */
