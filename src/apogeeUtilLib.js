@@ -166,6 +166,27 @@ apogeeutil.deepFreeze = function(obj) {
 
     //freeze self (no-op if already frozen)
     return Object.freeze(obj);
+
+    //////////////////////////////////////
+    //copied code - I might change some
+    //this is one of several versions on internet
+    //also check deep-freeze, deep-freeze-strict on npm
+
+    // if(!_.isObjectLike(object)) {
+    //     return;
+    // }
+
+    // Object.freeze(object);
+
+    // _.forOwn(object, function (value) {
+    //     if (!_.isObjectLike(value) ||
+    //         Object.isFrozen(value)) {
+
+    //         return;
+    //     }
+
+    //     deepFreeze(value);
+    // });
 }
 
 /** This method does format string functionality. Text should include
