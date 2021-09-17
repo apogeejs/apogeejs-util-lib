@@ -151,46 +151,49 @@ apogeeutil.jsonCopy = function(data) {
  * objects but can be in javascript objects)
  * Implementation from Mozilla */
 apogeeutil.deepFreeze = function(obj) {
-    if((obj === null)||(obj === undefined)) return;
+    ///////////////////////////////////////////
+    // old freeze all recursively logic
+
+    // if((obj === null)||(obj === undefined)) return;
     
-    //retrieve the property names defined on obj
-    var propNames = Object.getOwnPropertyNames(obj);
+    // //retrieve the property names defined on obj
+    // var propNames = Object.getOwnPropertyNames(obj);
 
-    //freeze properties before freezing self
-    propNames.forEach(function(name) {
-        var prop = obj[name];
+    // //freeze properties before freezing self
+    // propNames.forEach(function(name) {
+    //     var prop = obj[name];
 
-        //freeze prop if it is an object
-        if(typeof prop == 'object' && prop !== null) apogeeutil.deepFreeze(prop);
-    });
+    //     //freeze prop if it is an object
+    //     if(typeof prop == 'object' && prop !== null) apogeeutil.deepFreeze(prop);
+    // });
 
-    //freeze self (no-op if already frozen)
-    return Object.freeze(obj);
+    // //freeze self (no-op if already frozen)
+    // return Object.freeze(obj);
+
+    /////////////////////////////////////////
 
     //////////////////////////////////////
-    //copied code - I might change some
-    //this is one of several versions on internet
-    //also check deep-freeze, deep-freeze-strict on npm
+    // logic to freeze recursively unless already frozen
+    // Here we risk not freezing something, but we won't 
+    // run indefinitely if there is an internal looping reference 
 
-    // if(!_.isObjectLike(object)) {
-    //     return;
-    // }
+    if((!_.isObjectLike(obj))||(Object.isFrozen(obj))) {
+        return;
+    }
 
-    // Object.freeze(object);
+    Object.freeze(object);
 
-    // _.forOwn(object, function (value) {
-    //     if (!_.isObjectLike(value) ||
-    //         Object.isFrozen(value)) {
+    _.forOwn(object, function (value) {
+        deepFreeze(value);
+    });
 
-    //         return;
-    //     }
+    ////////////////////////////////////////
 
-    //     deepFreeze(value);
-    // });
 }
 
 /** This method does format string functionality. Text should include
  * {i} to insert the ith string argument passed. 
+ * @deprecated
  *  @param {String} format - This is a format string to format the output.
  *  @param {Array} stringArgs - These are the values which should be placed into the format string.
  *  @returns {String} The format string with the proper inserted values is returned.  
@@ -233,6 +236,7 @@ apogeeutil.jsonEquals = function(json1,json2) {
  * This method returns a copied json that has the order in all JSON objects/"maps" normalized to alphabetical. 
  * The order of JSON arrays is NOT modified.
  * This is intended for the purpose of comparing json objects. 
+ * @deprecated 
  * 
  *  @param {JSON} json1 - This is a JSON valued object 
  *  @returns {JSON} - Returns a order-modified version of the object
@@ -259,6 +263,7 @@ apogeeutil.getNormalizedCopy = function(json) {
 }
 
 /** this orders the keys apphabetically, since order is not important in a json object 
+ * @deprecated
  * @private
  */
 apogeeutil.getNormalizedObjectCopy = function(json) {
@@ -279,18 +284,15 @@ apogeeutil.getNormalizedObjectCopy = function(json) {
     return copiedJson;
 }
 
-/** This method counts the properties in a object. */
+/** This method counts the properties in a object. 
+ * @deprecated
+*/
 apogeeutil.jsonObjectLength = function(jsonObject) {
-    var count = 0;
-
-    for(var key in jsonObject) {
-        count++;
-    }
-
-    return count;
+    _.size(jsonObject);
 }
 
 /** This makes a copy of with any contained objects normalized. 
+ * @deprecated
  * @private 
  */
 apogeeutil.getNormalizedArrayCopy = function(json) {
