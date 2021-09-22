@@ -181,10 +181,10 @@ apogeeutil.deepFreeze = function(obj) {
         return;
     }
 
-    Object.freeze(object);
+    Object.freeze(obj);
 
-    _.forOwn(object, function (value) {
-        deepFreeze(value);
+    _.forOwn(obj, function (value) {
+        apogeeutil.deepFreeze(value);
     });
 
     ////////////////////////////////////////
