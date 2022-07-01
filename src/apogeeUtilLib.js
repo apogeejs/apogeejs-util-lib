@@ -66,6 +66,9 @@ apogeeutil.mixin = function(destObject,mixinObject) {
     }
 }
 
+/** This value is for formatting json objects */
+apogeeutil.SPACING_FORMAT_STRING = '\t'
+
 /** 
  * This method creates an integer hash value for a string. 
  * 
@@ -310,10 +313,91 @@ apogeeutil.isJsonMimeType = function(mimeType) {
 }
 
 apogeeutil.MIME_TYPE_JSON = "application/json"
+apogeeutil.MIME_TYPE_TEXT = "text/plain"
 
 //=================
 // Some other generic utils
 //=================
+
+/** This function stringifies json data, adding cases for INVALID_VALUE, undefined and NaN.  */
+apogeeutil.stringifyJsonData = function(json) {
+    if(json == apogeeutil.INVALID_VALUE) return apogeeutil.INVALID_VALUE;
+    else if(json === undefined) return "undefined";
+    else if(Number.isNaN(json)) return "NaN";
+    else return JSON.stringify(json,null,apogeeutil.SPACING_FORMAT_STRING);
+}
+
+/** This function parses text data to JSON, adding the ability to parse INVALID_VALUE, undefined, and NaN.
+ * It also applies a standard value field to a parsing error. There is an optional argument to return an error
+ * as data instead of throwing the error. The default value for this is false. */
+apogeeutil.parseJsonData = function(text,returnErrorAsData=false) {
+    if(text == apogeeutil.INVALID_VALUE) return apogeeutil.INVALID_VALUE
+    else if(text === "undefined") {
+        return undefined
+    }
+    else if(text == "NaN") {
+        return NaN
+    }
+    else {
+        //here we add apogee specific error information if the parse fails
+        try {
+            return JSON.parse(text)
+        }
+        catch(error) {
+            //if we had an error parsing append the string data to the error so we can display it.
+            error.valueData = {
+                value: text,
+                valueType: apogeeutil.MIME_TYPE_TEXT
+            }
+            if(returnErrorAsData) return error
+            else throw(error)
+        }
+    }
+}
+
+const MAX_JS_STRINGIFY_DEPTH = 20
+
+/** This converts a javascript data object to a string. The assumed format of theobject is similar to a JSON
+ * except functions are also allowed. */
+//TEMPORARY IMPLEMENTATION!!! Find something better
+apogeeutil.stringifyJavascriptData = function(jsObject,indent = '') {
+
+    //this is mainly for objects with internal references
+    if(indent.length > MAX_JS_STRINGIFY_DEPTH) throw new Error("Maximum object depth exceeeded!")
+  
+    var objectType = typeof jsObject 
+    
+    if(Array.isArray(jsObject)) {
+        let lines = []
+        _.forOwn(jsObject, function (value) {
+            lines.push(`\n${indent}${apogeeutil.stringifyJavascriptData(jsObject[value],indent + apogeeutil.SPACING_FORMAT_STRING)}`)
+        })
+        if(lines.length > 0) return `[${lines.join(",\n")}}\n${indent}]`
+        else return "[]"
+    }
+    else if(objectType == "object") {
+        let lines = []
+        _.forOwn(jsObject, function (value) {
+            lines.push(`\n${indent}${value}: ${apogeeutil.stringifyJavascriptData(jsObject[value],indent + apogeeutil.SPACING_FORMAT_STRING)}`)
+        })
+        if(lines.length > 0) return `{${lines.join(",\n")}}\n${indent}}`
+        else return "{}"
+    }
+    else if(objectType == "function") { 
+        let unindentedText = jsObject.toString()
+        let lines = unindentedText.split('\n')
+        if(lines.length > 0) {
+            let indentedText = lines.join(`\n${indent + apogeeutil.SPACING_FORMAT_STRING}`)
+            return `function(${args}) {${indentedText}\n${indent}}`
+        }
+        else {
+            return 'function() {}'
+        }
+    }
+    else {
+        return String(jsObject) 
+    }
+}
 
 /** This methdo parses an arg list string to make an arg list array. It is
  * also used outisde this class. */
