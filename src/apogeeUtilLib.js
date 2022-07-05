@@ -328,8 +328,8 @@ apogeeutil.stringifyJsonData = function(json) {
 }
 
 /** This function parses text data to JSON, adding the ability to parse INVALID_VALUE, undefined, and NaN.
- * It also applies a standard value field to a parsing error. There is an optional argument to return an error
- * as data instead of throwing the error. The default value for this is false. */
+ * It also applies a standard value field to a parsing error. There is an optional argument to return an Error object
+ * as the return value instead of throwing the error. The default value for this is false. */
 apogeeutil.parseJsonData = function(text,returnErrorAsData=false) {
     if(text == apogeeutil.INVALID_VALUE) return apogeeutil.INVALID_VALUE
     else if(text === "undefined") {
@@ -345,10 +345,7 @@ apogeeutil.parseJsonData = function(text,returnErrorAsData=false) {
         }
         catch(error) {
             //if we had an error parsing append the string data to the error so we can display it.
-            error.valueData = {
-                value: text,
-                valueType: apogeeutil.MIME_TYPE_TEXT
-            }
+            error.unparsedData = text
             if(returnErrorAsData) return error
             else throw(error)
         }
